@@ -1,0 +1,29 @@
+name: Test template rendering with timezone
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          template: actions/hardened/chuhlomin--render-template/v1.10/tests/fixtures/date.tmpl
+          vars: |
+            name=Timezone
+          timezone: America/New_York
+      - name: Assert output is non-empty
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected non-empty output"
+            exit 1
+          fi
+          if [ "$ACTUAL" != "Hello, Timezone!" ]; then
+            echo "FAIL: expected 'Hello, Timezone!' but got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"

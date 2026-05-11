@@ -1,0 +1,37 @@
+name: Test template rendering with vars_path and result_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          template: actions/hardened/chuhlomin--render-template/v1.10/tests/fixtures/greeting.tmpl
+          vars_path: actions/hardened/chuhlomin--render-template/v1.10/tests/fixtures/vars.yaml
+          result_path: /tmp/rendered-output.txt
+      - name: Assert output contains rendered content
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "Hi, World!" ]; then
+            echo "FAIL: expected 'Hi, World!' but got '$ACTUAL'"
+            exit 1
+          fi
+          echo "PASS"
+      - name: Assert result file was created
+        run: |
+          if [ ! -f /tmp/rendered-output.txt ]; then
+            echo "FAIL: result file /tmp/rendered-output.txt was not created"
+            exit 1
+          fi
+          CONTENT=$(cat /tmp/rendered-output.txt)
+          echo "file content: $CONTENT"
+          if [ "$CONTENT" != "Hi, World!" ]; then
+            echo "FAIL: expected file content 'Hi, World!' but got '$CONTENT'"
+            exit 1
+          fi
+          echo "PASS"
