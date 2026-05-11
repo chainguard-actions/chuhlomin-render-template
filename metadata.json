@@ -1,0 +1,7 @@
+{
+  "owner": "chuhlomin",
+  "name": "render-template",
+  "visibility": "internal",
+  "description": "Renders file based on template and passed variables",
+  "block_publish": false
+}
