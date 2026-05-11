@@ -1,0 +1,32 @@
+name: Test basic template rendering with vars
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          template: actions/hardened/chuhlomin--render-template/v1.11/tests/fixtures/template.txt
+          vars: |
+            name=Alice
+            version=2.0
+      - name: Assert output contains rendered content
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "Hello, Alice!"; then
+            echo "PASS: name rendered correctly"
+          else
+            echo "FAIL: expected 'Hello, Alice!' in output"
+            exit 1
+          fi
+          if echo "$ACTUAL" | grep -q "Version: 2.0"; then
+            echo "PASS: version rendered correctly"
+          else
+            echo "FAIL: expected 'Version: 2.0' in output"
+            exit 1
+          fi

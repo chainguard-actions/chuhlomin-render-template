@@ -1,0 +1,32 @@
+name: Test template rendering with timezone
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          template: actions/hardened/chuhlomin--render-template/v1.11/tests/fixtures/template-date.txt
+          vars: |
+            greeting=Hello
+          timezone: America/New_York
+      - name: Assert output contains rendered content
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "Date:"; then
+            echo "PASS: date field is present"
+          else
+            echo "FAIL: expected 'Date:' in output"
+            exit 1
+          fi
+          if echo "$ACTUAL" | grep -q "Greeting: Hello"; then
+            echo "PASS: greeting rendered correctly"
+          else
+            echo "FAIL: expected 'Greeting: Hello' in output"
+            exit 1
+          fi

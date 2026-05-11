@@ -1,0 +1,49 @@
+name: Test template rendering with vars_path and result_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          template: actions/hardened/chuhlomin--render-template/v1.11/tests/fixtures/template.txt
+          vars_path: actions/hardened/chuhlomin--render-template/v1.11/tests/fixtures/vars.yaml
+          result_path: /tmp/rendered-output.txt
+      - name: Assert output file was created
+        run: |
+          if [ ! -f /tmp/rendered-output.txt ]; then
+            echo "FAIL: result file was not created at /tmp/rendered-output.txt"
+            exit 1
+          fi
+          echo "PASS: result file exists"
+          cat /tmp/rendered-output.txt
+      - name: Assert output file contains rendered content
+        run: |
+          CONTENT=$(cat /tmp/rendered-output.txt)
+          echo "content: $CONTENT"
+          if echo "$CONTENT" | grep -q "Hello, World!"; then
+            echo "PASS: name rendered correctly"
+          else
+            echo "FAIL: expected 'Hello, World!' in output file"
+            exit 1
+          fi
+          if echo "$CONTENT" | grep -q "Version: 1.0"; then
+            echo "PASS: version rendered correctly"
+          else
+            echo "FAIL: expected 'Version: 1.0' in output file"
+            exit 1
+          fi
+      - name: Assert step output matches file content
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "Hello, World!"; then
+            echo "PASS: step output contains rendered content"
+          else
+            echo "FAIL: expected 'Hello, World!' in step output"
+            exit 1
+          fi
