@@ -34,4 +34,4 @@ outputs:
 
 runs:
   using: docker
-  image: "docker://ghcr.io/chuhlomin/render-template@sha256:8a7257b4bc165216fbdce434f4d403f59ac3a639de748adaa90475d7ffd598ce" # v1.11
+  image: "docker://ghcr.io/chuhlomin/render-template:v1.11@sha256:8a7257b4bc165216fbdce434f4d403f59ac3a639de748adaa90475d7ffd598ce"

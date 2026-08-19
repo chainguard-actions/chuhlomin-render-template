@@ -1,4 +1,4 @@
-name: Test basic template rendering with inline vars
+name: Test template rendering with vars_path
 on:
   workflow_dispatch:
 jobs:
@@ -10,11 +10,10 @@ jobs:
       - id: render
         uses: .
         with:
-          template: tests/fixtures/templates/basic.tmpl
-          vars: |
-            name: World
+          template: tests/fixtures/templates/greeting.tmpl
+          vars_path: tests/fixtures/vars/basic.yaml
 
-      - name: Assert rendered output contains expected content
+      - name: Assert rendered output contains expected content from YAML vars
         env:
           ACTUAL: ${{ steps.render.outputs.result }}
         run: |

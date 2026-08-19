@@ -1,0 +1,47 @@
+name: Test template rendering with result_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: render
+        uses: .
+        with:
+          template: tests/fixtures/templates/output.tmpl
+          vars: |
+            project: MyApp
+          result_path: rendered-output.txt
+
+      - name: Assert result output contains expected content
+        env:
+          ACTUAL: ${{ steps.render.outputs.result }}
+        run: |
+          echo "actual output: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: output is empty"
+            exit 1
+          fi
+          if echo "$ACTUAL" | grep -qF "MyApp"; then
+            echo "PASS: output contains 'MyApp'"
+          else
+            echo "FAIL: expected output to contain 'MyApp' but got: $ACTUAL"
+            exit 1
+          fi
+
+      - name: Assert result file was created
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/rendered-output.txt" ]; then
+            echo "FAIL: result file was not created at $GITHUB_WORKSPACE/rendered-output.txt"
+            exit 1
+          fi
+          CONTENT=$(cat "$GITHUB_WORKSPACE/rendered-output.txt")
+          echo "file content: $CONTENT"
+          if echo "$CONTENT" | grep -qF "MyApp"; then
+            echo "PASS: result file contains 'MyApp'"
+          else
+            echo "FAIL: result file does not contain 'MyApp'"
+            exit 1
+          fi
