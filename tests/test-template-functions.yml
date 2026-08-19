@@ -1,0 +1,49 @@
+name: Test built-in template functions
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          template: tests/fixtures/functions.template.txt
+
+      - name: Assert mdlink function output
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q '\[GitHub\](https://github.com)'; then
+            echo "PASS: mdlink rendered correctly"
+          else
+            echo "FAIL: expected '[GitHub](https://github.com)' in output"
+            exit 1
+          fi
+
+      - name: Assert base64 function output
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "aGVsbG8="; then
+            echo "PASS: base64 rendered correctly"
+          else
+            echo "FAIL: expected 'aGVsbG8=' in output"
+            exit 1
+          fi
+
+      - name: Assert number function output
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "1,234,567,890"; then
+            echo "PASS: number formatted correctly"
+          else
+            echo "FAIL: expected '1,234,567,890' in output"
+            exit 1
+          fi

@@ -1,0 +1,38 @@
+name: Test template rendering with vars_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          template: tests/fixtures/greeting.template.txt
+          vars_path: tests/fixtures/vars.yaml
+
+      - name: Assert rendered output contains project name
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "Project: MyApp"; then
+            echo "PASS: project name rendered correctly"
+          else
+            echo "FAIL: expected 'Project: MyApp' in output"
+            exit 1
+          fi
+
+      - name: Assert rendered output contains version
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "Version: 1.2.3"; then
+            echo "PASS: version rendered correctly"
+          else
+            echo "FAIL: expected 'Version: 1.2.3' in output"
+            exit 1
+          fi

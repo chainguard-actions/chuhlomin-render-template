@@ -1,0 +1,59 @@
+name: Test template rendering with result_path output file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          template: tests/fixtures/deploy.template.yml
+          vars: |
+            deployment: nginx-deployment
+            app: nginx
+          result_path: tests/rendered-deploy.yml
+
+      - name: Assert result file was created
+        run: |
+          if [ -f "$GITHUB_WORKSPACE/tests/rendered-deploy.yml" ]; then
+            echo "PASS: result file exists"
+          else
+            echo "FAIL: result file not found at tests/rendered-deploy.yml"
+            exit 1
+          fi
+
+      - name: Assert result file contains rendered deployment name
+        run: |
+          CONTENT=$(cat "$GITHUB_WORKSPACE/tests/rendered-deploy.yml")
+          echo "content: $CONTENT"
+          if echo "$CONTENT" | grep -q "name: nginx-deployment"; then
+            echo "PASS: deployment name rendered correctly in file"
+          else
+            echo "FAIL: expected 'name: nginx-deployment' in result file"
+            exit 1
+          fi
+
+      - name: Assert result file contains rendered app label
+        run: |
+          CONTENT=$(cat "$GITHUB_WORKSPACE/tests/rendered-deploy.yml")
+          if echo "$CONTENT" | grep -q "app: nginx"; then
+            echo "PASS: app label rendered correctly in file"
+          else
+            echo "FAIL: expected 'app: nginx' in result file"
+            exit 1
+          fi
+
+      - name: Assert output also contains rendered content
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if echo "$ACTUAL" | grep -q "nginx-deployment"; then
+            echo "PASS: output also contains rendered content"
+          else
+            echo "FAIL: expected 'nginx-deployment' in step output"
+            exit 1
+          fi

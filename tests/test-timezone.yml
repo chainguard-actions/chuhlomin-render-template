@@ -6,18 +6,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create template with date function
+        run: |
+          cat > /tmp/timezone-template.md << 'EOF'
+          Year: {{ date "2006" }}
+          EOF
+
       - id: action
         uses: .
         with:
-          template: actions/hardened/chuhlomin--render-template/v1.9/tests/fixtures/date.tmpl
+          template: /tmp/timezone-template.md
           timezone: America/New_York
-      - name: Assert output is a 4-digit year
+
+      - name: Assert result is non-empty
         env:
-          ACTUAL: ${{ steps.action.outputs.result }}
+          RESULT: ${{ steps.action.outputs.result }}
         run: |
-          echo "actual: $ACTUAL"
-          if ! echo "$ACTUAL" | grep -qE '^[0-9]{4}$'; then
-            echo "FAIL: expected a 4-digit year but got '$ACTUAL'"
+          echo "result: $RESULT"
+          if [ -z "$RESULT" ]; then
+            echo "FAIL: expected non-empty result"
+            exit 1
+          fi
+          echo "PASS: got result with timezone set"
+
+      - name: Assert result contains year
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          if ! echo "$RESULT" | grep -qE 'Year: [0-9]{4}'; then
+            echo "FAIL: expected result to contain 'Year: <4-digit-year>'"
             exit 1
           fi
           echo "PASS"
