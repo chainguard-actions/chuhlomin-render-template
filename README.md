@@ -9,7 +9,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
 | v1.10 | [`v1.10`](https://github.com/chainguard-actions/chuhlomin-render-template/tree/v1.10) | [`807354a`](https://github.com/chuhlomin/render-template/commit/807354a04d9300c9c2ac177c0aa41556c92b3f75) |
-| v1.11 | [`v1.11`](https://github.com/chainguard-actions/chuhlomin-render-template/tree/v1.11) | — |
+| v1.11 | [`v1.11`](https://github.com/chainguard-actions/chuhlomin-render-template/tree/v1.11) | [`4a12ddb`](https://github.com/chuhlomin/render-template/commit/4a12ddbf4f679c56eeb3c7b275eeb469c73837be) |
 | v1.12 | [`v1.12`](https://github.com/chainguard-actions/chuhlomin-render-template/tree/v1.12) | — |
 | v1.9 | [`v1.9`](https://github.com/chainguard-actions/chuhlomin-render-template/tree/v1.9) | — |
 
