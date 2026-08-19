@@ -1,0 +1,53 @@
+name: Test rendering with vars_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create template and vars files in workspace
+        run: |
+          cat > "$GITHUB_WORKSPACE/template.tmpl" << 'EOF'
+          Project: {{ .project }}
+          Version: {{ .version }}
+          Author: {{ .author }}
+          EOF
+          cat > "$GITHUB_WORKSPACE/vars.yaml" << 'EOF'
+          project: MyApp
+          version: "2.0.0"
+          author: Alice
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          template: template.tmpl
+          vars_path: vars.yaml
+
+      - name: Assert result output contains all variables
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          FAIL=0
+          if echo "$RESULT" | grep -q "MyApp"; then
+            echo "PASS: project rendered correctly"
+          else
+            echo "FAIL: expected 'MyApp' in result"
+            FAIL=1
+          fi
+          if echo "$RESULT" | grep -q "2.0.0"; then
+            echo "PASS: version rendered correctly"
+          else
+            echo "FAIL: expected '2.0.0' in result"
+            FAIL=1
+          fi
+          if echo "$RESULT" | grep -q "Alice"; then
+            echo "PASS: author rendered correctly"
+          else
+            echo "FAIL: expected 'Alice' in result"
+            FAIL=1
+          fi
+          exit $FAIL

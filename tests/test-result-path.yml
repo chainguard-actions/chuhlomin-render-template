@@ -1,0 +1,49 @@
+name: Test rendering to result_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create template file in workspace
+        run: |
+          cat > "$GITHUB_WORKSPACE/greeting.tmpl" << 'EOF'
+          Greetings from {{ .city }}!
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          template: greeting.tmpl
+          vars: |
+            city: Paris
+          result_path: output.txt
+
+      - name: Assert result file exists and has correct content
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/output.txt" ]; then
+            echo "FAIL: result file not found at $GITHUB_WORKSPACE/output.txt"
+            exit 1
+          fi
+          CONTENT=$(cat "$GITHUB_WORKSPACE/output.txt")
+          echo "content: $CONTENT"
+          if echo "$CONTENT" | grep -q "Greetings from Paris"; then
+            echo "PASS: result file has correct content"
+          else
+            echo "FAIL: expected 'Greetings from Paris' in result file"
+            exit 1
+          fi
+
+      - name: Assert result output also set
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+        run: |
+          echo "result output: $RESULT"
+          if echo "$RESULT" | grep -q "Greetings from Paris"; then
+            echo "PASS: result output has correct content"
+          else
+            echo "FAIL: expected 'Greetings from Paris' in result output"
+            exit 1
+          fi

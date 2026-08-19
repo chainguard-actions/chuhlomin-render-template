@@ -1,0 +1,31 @@
+name: Test rendering template with no variables
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create static template file in workspace
+        run: |
+          cat > "$GITHUB_WORKSPACE/static.tmpl" << 'EOF'
+          This is a static template with no variables.
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          template: static.tmpl
+
+      - name: Assert result output matches static content
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          if echo "$RESULT" | grep -q "static template with no variables"; then
+            echo "PASS: static content rendered correctly"
+          else
+            echo "FAIL: expected static content in result"
+            exit 1
+          fi

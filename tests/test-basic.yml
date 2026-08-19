@@ -1,4 +1,4 @@
-name: Test basic template rendering with vars
+name: Test basic template rendering
 on:
   workflow_dispatch:
 jobs:
@@ -6,19 +6,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create template file in workspace
+        run: |
+          cat > "$GITHUB_WORKSPACE/hello.tmpl" << 'EOF'
+          Hello, {{ .name }}! You are {{ .age }} years old.
+          EOF
+
       - id: action
         uses: .
         with:
-          template: actions/hardened/chuhlomin--render-template/v1.10/tests/fixtures/hello.tmpl
+          template: hello.tmpl
           vars: |
-            name=World
-      - name: Assert output contains rendered content
+            name: World
+            age: 42
+
+      - name: Assert result output
         env:
-          ACTUAL: ${{ steps.action.outputs.result }}
+          RESULT: ${{ steps.action.outputs.result }}
         run: |
-          echo "actual: $ACTUAL"
-          if [ "$ACTUAL" != "Hello, World!" ]; then
-            echo "FAIL: expected 'Hello, World!' but got '$ACTUAL'"
+          echo "result: $RESULT"
+          if echo "$RESULT" | grep -q "Hello, World"; then
+            echo "PASS: name rendered correctly"
+          else
+            echo "FAIL: expected 'Hello, World' in result"
             exit 1
           fi
-          echo "PASS"
+          if echo "$RESULT" | grep -q "42"; then
+            echo "PASS: age rendered correctly"
+          else
+            echo "FAIL: expected '42' in result"
+            exit 1
+          fi

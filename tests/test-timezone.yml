@@ -1,4 +1,4 @@
-name: Test template rendering with timezone
+name: Test rendering with timezone
 on:
   workflow_dispatch:
 jobs:
@@ -6,24 +6,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create template with date function in workspace
+        run: |
+          cat > "$GITHUB_WORKSPACE/date.tmpl" << 'EOF'
+          Generated on: {{ .timestamp | date "2006" }}
+          Location: {{ .location }}
+          EOF
+
       - id: action
         uses: .
         with:
-          template: actions/hardened/chuhlomin--render-template/v1.10/tests/fixtures/date.tmpl
+          template: date.tmpl
           vars: |
-            name=Timezone
+            location: New York
+            timestamp: "2024-06-15T12:00:00Z"
           timezone: America/New_York
-      - name: Assert output is non-empty
+
+      - name: Assert result output contains year and location
         env:
-          ACTUAL: ${{ steps.action.outputs.result }}
+          RESULT: ${{ steps.action.outputs.result }}
         run: |
-          echo "actual: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: expected non-empty output"
+          echo "result: $RESULT"
+          if echo "$RESULT" | grep -q "2024"; then
+            echo "PASS: year rendered correctly"
+          else
+            echo "FAIL: expected '2024' in result"
             exit 1
           fi
-          if [ "$ACTUAL" != "Hello, Timezone!" ]; then
-            echo "FAIL: expected 'Hello, Timezone!' but got '$ACTUAL'"
+          if echo "$RESULT" | grep -q "New York"; then
+            echo "PASS: location rendered correctly"
+          else
+            echo "FAIL: expected 'New York' in result"
             exit 1
           fi
-          echo "PASS"
