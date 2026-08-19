@@ -1,2 +1,3 @@
-user: Alice
-role: admin
+project: MyApp
+version: "2.0.0"
+author: Alice

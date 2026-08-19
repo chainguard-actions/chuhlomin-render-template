@@ -42,10 +42,12 @@ runs:
         GH_TOKEN: ${{ github.token }}
         ACTION_REPO: ${{ github.action_repository }}
         ACTION_REF: ${{ github.action_ref }}
+        RUNNER_OS_INPUT: ${{ runner.os }}
+        RUNNER_ARCH_INPUT: ${{ runner.arch }}
       run: |
-        OS=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')
+        OS=$(echo "$RUNNER_OS_INPUT" | tr '[:upper:]' '[:lower:]')
         [ "$OS" = "macos" ] && OS="darwin"
-        ARCH=$(echo "${{ runner.arch }}" | tr '[:upper:]' '[:lower:]')
+        ARCH=$(echo "$RUNNER_ARCH_INPUT" | tr '[:upper:]' '[:lower:]')
         [ "$ARCH" = "x64" ] && ARCH="amd64"
         [ "$ARCH" = "arm" ] && ARCH="armv7"
         EXT=""
@@ -75,7 +77,8 @@ runs:
           fi
         fi
         [ "$OS" != "windows" ] && chmod +x "$DEST/$BINARY"
-        echo "RENDER_TEMPLATE_BIN=$DEST/$BINARY" >> "$GITHUB_ENV"
+        safe=$(printf '%s' "$DEST/$BINARY" | tr -d '\n\r')
+        echo "RENDER_TEMPLATE_BIN=$safe" >> "$GITHUB_ENV"
 
     - name: Run
       id: run
@@ -86,4 +89,5 @@ runs:
         INPUT_VARS_PATH: ${{ inputs.vars_path }}
         INPUT_RESULT_PATH: ${{ inputs.result_path }}
         INPUT_TIMEZONE: ${{ inputs.timezone }}
-      run: "${{ env.RENDER_TEMPLATE_BIN }}"
+        RENDER_TEMPLATE_BIN: ${{ env.RENDER_TEMPLATE_BIN }}
+      run: "$RENDER_TEMPLATE_BIN"
