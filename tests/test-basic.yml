@@ -1,0 +1,34 @@
+name: Test basic template rendering with inline vars
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: render
+        uses: .
+        with:
+          template: tests/fixtures/templates/hello.tmpl
+          vars: |
+            name: Alice
+            age: 30
+
+      - name: Assert rendered output contains expected values
+        env:
+          RESULT: ${{ steps.render.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          if echo "$RESULT" | grep -q "Hello, Alice!"; then
+            echo "PASS: name rendered correctly"
+          else
+            echo "FAIL: expected 'Hello, Alice!' in output"
+            exit 1
+          fi
+          if echo "$RESULT" | grep -q "30 years old"; then
+            echo "PASS: age rendered correctly"
+          else
+            echo "FAIL: expected '30 years old' in output"
+            exit 1
+          fi

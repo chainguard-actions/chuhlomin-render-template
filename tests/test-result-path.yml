@@ -1,0 +1,47 @@
+name: Test template rendering with result_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create output directory
+        run: mkdir -p tests/output
+
+      - id: render
+        uses: .
+        with:
+          template: tests/fixtures/templates/output.tmpl
+          vars: |
+            title: My Project
+            version: 1.0.0
+          result_path: tests/output/rendered.txt
+
+      - name: Assert result file was created with expected content
+        env:
+          RESULT: ${{ steps.render.outputs.result }}
+        run: |
+          echo "result output: $RESULT"
+          # Check the output variable contains expected content
+          if echo "$RESULT" | grep -q "Generated: My Project"; then
+            echo "PASS: title rendered correctly in output"
+          else
+            echo "FAIL: expected 'Generated: My Project' in result output"
+            exit 1
+          fi
+          if echo "$RESULT" | grep -q "Version: 1.0.0"; then
+            echo "PASS: version rendered correctly in output"
+          else
+            echo "FAIL: expected 'Version: 1.0.0' in result output"
+            exit 1
+          fi
+          # Check the result file was written to disk
+          if [ -f "tests/output/rendered.txt" ]; then
+            echo "PASS: result file exists"
+            cat tests/output/rendered.txt
+          else
+            echo "FAIL: result file 'tests/output/rendered.txt' was not created"
+            exit 1
+          fi

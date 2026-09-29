@@ -1,0 +1,32 @@
+name: Test template rendering with vars_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: render
+        uses: .
+        with:
+          template: tests/fixtures/templates/hello.tmpl
+          vars_path: tests/fixtures/vars/hello-vars.yaml
+
+      - name: Assert rendered output from vars_path
+        env:
+          RESULT: ${{ steps.render.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          if echo "$RESULT" | grep -q "Hello, World!"; then
+            echo "PASS: name from vars_path rendered correctly"
+          else
+            echo "FAIL: expected 'Hello, World!' in output"
+            exit 1
+          fi
+          if echo "$RESULT" | grep -q "42 years old"; then
+            echo "PASS: age from vars_path rendered correctly"
+          else
+            echo "FAIL: expected '42 years old' in output"
+            exit 1
+          fi

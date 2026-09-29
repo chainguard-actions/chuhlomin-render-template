@@ -1,0 +1,40 @@
+name: Test timezone input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create template file with date function
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/hardened/tests/tmp"
+          cat > "$GITHUB_WORKSPACE/hardened/tests/tmp/timezone-template.txt" <<'EOF'
+          Hello {{ .name }}! The current year is {{ date "2006" now }}.
+          EOF
+
+      - id: action
+        uses: .
+        with:
+          template: hardened/tests/tmp/timezone-template.txt
+          vars: |
+            name=World
+          timezone: America/New_York
+
+      - name: Assert output contains rendered content
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          if [ -z "$RESULT" ]; then
+            echo "FAIL: result output is empty"
+            exit 1
+          fi
+          if echo "$RESULT" | grep -q "World"; then
+            echo "PASS: output contains 'World'"
+          else
+            echo "FAIL: output does not contain 'World'"
+            exit 1
+          fi
+          echo "PASS: timezone input accepted and template rendered"

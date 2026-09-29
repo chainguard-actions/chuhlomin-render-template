@@ -10,34 +10,36 @@
 
 **Harden Agent Version:** `2`
 
-Action **chuhlomin--render-template--binary/v1.12** was hardened automatically. 3 finding(s) were identified and resolved across 1 iteration(s).
+Action **chuhlomin--render-template--binary/v1.12** was hardened automatically. 3 finding(s) were identified and resolved across 2 iteration(s).
 
 ## Findings Fixed
 
 ### script-injection (severity: high)
 
-Sub-rule (a): Direct ${{ }} expression interpolation inside run: shell command strings. In the 'Download binary' step, `${{ runner.os }}` and `${{ runner.arch }}` are interpolated directly into the shell script: `OS=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')` and `ARCH=$(echo "${{ runner.arch }}" | tr '[:upper:]' '[:lower:]')`. Any ${{ ... }} expression inside a run: block is a script-injection risk regardless of context (runner.*, env.*, etc.) because the value is substituted by the YAML template engine before the shell ever sees it.
+Sub-rule (a): `${{ runner.os }}` and `${{ runner.arch }}` are directly interpolated inside the `run:` shell script of the 'Download binary' step. Any `${{ ... }}` expression directly inside a `run:` block is a script-injection risk — these should be accessed via the pre-set environment variables `$RUNNER_OS` and `$RUNNER_ARCH` instead. Offending lines:
+  `OS=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')`
+  `ARCH=$(echo "${{ runner.arch }}" | tr '[:upper:]' '[:lower:]')`
 
 Locations:
 
-- `action.yml:44`
-- `action.yml:46`
+- `action.yml:43`
+- `action.yml:45`
 
 ### script-injection (severity: high)
 
-Sub-rule (a): The entire 'Run' step command is a direct ${{ }} expression: `run: "${{ env.RENDER_TEMPLATE_BIN }}"`. The env.RENDER_TEMPLATE_BIN context value is interpolated directly into the run: field before the shell executes it, making this a script-injection vulnerability.
+Sub-rule (a): `${{ env.RENDER_TEMPLATE_BIN }}` is directly interpolated in the `run:` field of the 'Run' step: `run: "${{ env.RENDER_TEMPLATE_BIN }}"`  Any `${{ ... }}` expression directly inside a `run:` block is a script-injection finding. The binary path should be referenced as the shell environment variable `$RENDER_TEMPLATE_BIN` (set via `$GITHUB_ENV` in the prior step) rather than via template expression interpolation.
 
 Locations:
 
-- `action.yml:82`
+- `action.yml:75`
 
 ### github-env-injection (severity: high)
 
-The 'Download binary' step writes `echo "RENDER_TEMPLATE_BIN=$DEST/$BINARY" >> "$GITHUB_ENV"` without sanitization. The $BINARY variable is constructed from $OS and $ARCH, which were set via direct ${{ runner.os }} and ${{ runner.arch }} expression interpolations — workflow-controllable values. No `printf '%s' ... | tr -d '\n\r'` sanitization is applied before the write to $GITHUB_ENV, allowing newline injection to add arbitrary environment variables.
+The 'Download binary' step writes an inherited process env var (`$RUNNER_TEMP`) to `$GITHUB_ENV` without sanitization: `echo "RENDER_TEMPLATE_BIN=$DEST/$BINARY" >> "$GITHUB_ENV"`. `$DEST` is derived from `$RUNNER_TEMP`, which is an inherited runner environment variable (not set in this `run:` block) and is therefore workflow-controlled/untrusted for injection purposes. Writing it to `$GITHUB_ENV` without the required sanitization step (`printf '%s' "$VAR" | tr -d '\n\r'`) violates check rule (e). A newline embedded in `$RUNNER_TEMP` could inject arbitrary entries into the GitHub environment file.
 
 Locations:
 
-- `action.yml:72`
+- `action.yml:73`
 
 ## Iteration Notes
 
@@ -47,8 +49,16 @@ Locations:
 
 **Notes:**
 
-Fixed all three findings in action.yml:
-1. Moved `${{ runner.os }}` and `${{ runner.arch }}` from direct shell interpolation into the 'Download binary' step's env: block as RUNNER_OS and RUNNER_ARCH, then referenced them as plain shell variables.
-2. Replaced `run: "${{ env.RENDER_TEMPLATE_BIN }}"` in the Run step with `run: "$RENDER_TEMPLATE_BIN"` where RENDER_TEMPLATE_BIN is set in the env: block from `${{ steps.download.outputs.bin }}`.
-3. Replaced the unsanitized write to $GITHUB_ENV with a sanitized write to $GITHUB_OUTPUT using `printf '%s' "$DEST/$BINARY" | tr -d '\n\r'`, and added `id: download` to the Download binary step so the Run step can reference `steps.download.outputs.bin`.
+Fixed three findings in hardened/action/action.yml:
+1. Lines 43 & 45 (script-injection): Replaced `${{ runner.os }}` and `${{ runner.arch }}` with the pre-set environment variables `$RUNNER_OS` and `$RUNNER_ARCH`.
+2. Line 73 (github-env-injection): Added sanitization before writing to $GITHUB_ENV: `SAFE_BIN=$(printf '%s' "$DEST/$BINARY" | tr -d '\n\r')` then writing `$SAFE_BIN` instead of the raw path.
+3. Line 75 (script-injection): Replaced `"${{ env.RENDER_TEMPLATE_BIN }}"` with `"$RENDER_TEMPLATE_BIN"` to reference the shell environment variable set by the prior step rather than using a template expression inside the run block.
+
+### Iteration 1
+
+**Fixes applied:** script-injection
+
+**Notes:**
+
+Fixed the script injection vulnerability in the 'Download binary' step of action.yml. The original code used `--jq "first(.[] | select(.tagName | startswith(\"${ACTION_REF}.\"))) | .tagName"` which interpolated the workflow-controllable `ACTION_REF` env var (from `github.action_ref`) unquoted inside a jq expression string, allowing shell metacharacter injection. The fix pipes `gh release list --json tagName` output to `jq -r --arg ref "${ACTION_REF}" 'first(.[] | select(.tagName | startswith($ref + "."))) | .tagName'`, passing `ACTION_REF` as a jq variable via `--arg` so it is treated as data, not code. The jq program itself is single-quoted with no shell interpolation.
 

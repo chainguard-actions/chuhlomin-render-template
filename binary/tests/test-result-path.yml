@@ -1,4 +1,4 @@
-name: Test template rendering with vars_path
+name: Test template rendering with result_path output file
 on:
   workflow_dispatch:
 
@@ -13,9 +13,12 @@ jobs:
         continue-on-error: true
         with:
           template: tests/fixtures/templates/hello.md
-          vars_path: tests/fixtures/vars/hello-vars.yaml
+          vars: |
+            name=ActTest
+            version=2.0
+          result_path: /tmp/rendered-output.md
 
-      - name: Assert result
+      - name: Assert result file and output
         env:
           RESULT: ${{ steps.action.outputs.result }}
           OUTCOME: ${{ steps.action.outcome }}
@@ -27,11 +30,24 @@ jobs:
               echo "FAIL: action succeeded but result output is empty"
               exit 1
             fi
-            if echo "$RESULT" | grep -q "Hello, World!"; then
-              echo "PASS: result contains expected greeting from vars_path"
+            if echo "$RESULT" | grep -q "Hello, ActTest!"; then
+              echo "PASS: result output contains expected content"
             else
-              echo "FAIL: result does not contain 'Hello, World!'"
+              echo "FAIL: result output does not contain 'Hello, ActTest!'"
               echo "Got: $RESULT"
+              exit 1
+            fi
+            if [ -f "/tmp/rendered-output.md" ]; then
+              FILE_CONTENT=$(cat /tmp/rendered-output.md)
+              echo "file content: $FILE_CONTENT"
+              if echo "$FILE_CONTENT" | grep -q "Hello, ActTest!"; then
+                echo "PASS: result file contains expected content"
+              else
+                echo "FAIL: result file does not contain 'Hello, ActTest!'"
+                exit 1
+              fi
+            else
+              echo "FAIL: result file /tmp/rendered-output.md was not created"
               exit 1
             fi
           elif [ "$OUTCOME" = "failure" ]; then
