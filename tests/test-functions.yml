@@ -1,0 +1,33 @@
+name: Test template functions and timezone
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          template: tests/fixtures/funcs.tmpl
+          timezone: America/New_York
+          vars: |
+            text: hello
+            url: https://example.com
+            count: "1234567"
+            list:
+              - a
+              - b
+            when: "2024-01-15T12:00:00Z"
+            csv: "x,y,z"
+      - name: Assert result output
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          EXPECTED='b64=aGVsbG8=;link=[hello](https://example.com);num=1,234,567;json=["a","b"];date=2024-01-15 07:00;split=y'
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "FAIL: expected '$EXPECTED'"
+            exit 1
+          fi
+          echo "PASS"

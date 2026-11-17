@@ -1,0 +1,24 @@
+name: Test basic rendering with vars
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          template: tests/fixtures/basic.tmpl
+          vars: |
+            name: World
+      - name: Assert result output
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "Hello, World!" ]; then
+            echo "FAIL: expected 'Hello, World!'"
+            exit 1
+          fi
+          echo "PASS"

@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Minimal stand-in for the GitHub CLI (not installed in the act image).
+# Supports the subcommands used by the action's "Download binary" step:
+#   gh release download TAG --repo R --pattern P --dir D
+#   gh release list --repo R ...          (prints "latest")
+#   gh release view TAG --repo R          (succeeds)
+#   gh api ...                            (prints "latest")
+# Assets are fetched with plain HTTPS from github.com release download URLs.
+set -u
+
+fetch() {
+  local url="$1" out="$2"
+  echo "fake-gh: fetching $url" >&2
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$url" -o "$out"
+  else
+    wget -q "$url" -O "$out"
+  fi
+}
+
+cmd="${1:-}"; sub="${2:-}"
+case "$cmd $sub" in
+  "release download")
+    shift 2
+    TAG=""
+    if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then TAG="$1"; shift; fi
+    REPO="chuhlomin/render-template"; PATTERN=""; DIR="."
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --repo|-R) REPO="$2"; shift 2 ;;
+        --pattern|-p) PATTERN="$2"; shift 2 ;;
+        --dir|-D) DIR="$2"; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+    [ -z "$PATTERN" ] && { echo "fake-gh: --pattern required" >&2; exit 1; }
+    mkdir -p "$DIR"
+    if [ -n "$TAG" ] && [ "$TAG" != "latest" ]; then
+      if fetch "https://github.com/${REPO}/releases/download/${TAG}/${PATTERN}" "$DIR/$PATTERN"; then
+        exit 0
+      fi
+    fi
+    fetch "https://github.com/${REPO}/releases/latest/download/${PATTERN}" "$DIR/$PATTERN"
+    exit $?
+    ;;
+  "release list")
+    echo "latest"
+    exit 0
+    ;;
+  "release view")
+    exit 0
+    ;;
+  "api "*)
+    echo "latest"
+    exit 0
+    ;;
+esac
+echo "fake-gh: unsupported command: $*" >&2
+exit 1

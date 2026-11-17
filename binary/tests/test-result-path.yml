@@ -1,0 +1,39 @@
+name: Test result_path writes file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Provide gh CLI shim (gh is not installed in the act image)
+        run: |
+          mkdir -p "$RUNNER_TEMP/fakebin"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/fake-gh/gh" "$RUNNER_TEMP/fakebin/gh"
+          chmod +x "$RUNNER_TEMP/fakebin/gh"
+          echo "$RUNNER_TEMP/fakebin" >> "$GITHUB_PATH"
+      - name: Create template
+        run: |
+          mkdir -p "$RUNNER_TEMP/rt"
+          printf 'version={{ .version }}' > "$RUNNER_TEMP/rt/rp.tmpl"
+      - id: action
+        uses: .
+        with:
+          template: ${{ runner.temp }}/rt/rp.tmpl
+          vars: |
+            version: 2.0.1
+          result_path: ${{ runner.temp }}/rt/out.txt
+      - name: Assert result file
+        run: |
+          F="$RUNNER_TEMP/rt/out.txt"
+          if [ ! -f "$F" ]; then
+            echo "FAIL: result file $F not created"
+            exit 1
+          fi
+          CONTENT="$(cat "$F")"
+          echo "file content: $CONTENT"
+          if [ "$CONTENT" != "version=2.0.1" ]; then
+            echo "FAIL: expected 'version=2.0.1'"
+            exit 1
+          fi
+          echo "PASS"

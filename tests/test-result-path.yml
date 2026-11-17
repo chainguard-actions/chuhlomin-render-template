@@ -1,0 +1,38 @@
+name: Test result written to result_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Remove stale result file
+        run: rm -f "$GITHUB_WORKSPACE/rendered-result.txt"
+      - id: action
+        uses: .
+        with:
+          template: tests/fixtures/basic.tmpl
+          vars: |
+            name: File
+          result_path: rendered-result.txt
+      - name: Assert result file and output
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "output: $ACTUAL"
+          if [ "$ACTUAL" != "Hello, File!" ]; then
+            echo "FAIL: output expected 'Hello, File!'"
+            exit 1
+          fi
+          F="$GITHUB_WORKSPACE/rendered-result.txt"
+          if [ ! -f "$F" ]; then
+            echo "FAIL: result file not found at $F"
+            exit 1
+          fi
+          CONTENT="$(cat "$F")"
+          echo "file: $CONTENT"
+          if [ "$CONTENT" != "Hello, File!" ]; then
+            echo "FAIL: file content expected 'Hello, File!'"
+            exit 1
+          fi
+          echo "PASS"

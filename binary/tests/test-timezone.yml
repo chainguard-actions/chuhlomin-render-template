@@ -1,0 +1,35 @@
+name: Test timezone input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Provide gh CLI shim (gh is not installed in the act image)
+        run: |
+          mkdir -p "$RUNNER_TEMP/fakebin"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/fake-gh/gh" "$RUNNER_TEMP/fakebin/gh"
+          chmod +x "$RUNNER_TEMP/fakebin/gh"
+          echo "$RUNNER_TEMP/fakebin" >> "$GITHUB_PATH"
+      - name: Create template
+        run: |
+          mkdir -p "$RUNNER_TEMP/rt"
+          printf 'Release {{ .version }} built in TZ' > "$RUNNER_TEMP/rt/tz.tmpl"
+      - id: action
+        uses: .
+        with:
+          template: ${{ runner.temp }}/rt/tz.tmpl
+          vars: |
+            version: 1.2.3
+          timezone: America/New_York
+      - name: Assert result rendered with timezone set
+        env:
+          ACTUAL: ${{ steps.action.outputs.result }}
+        run: |
+          echo "actual: $ACTUAL"
+          if [ "$ACTUAL" != "Release 1.2.3 built in TZ" ]; then
+            echo "FAIL: expected 'Release 1.2.3 built in TZ'"
+            exit 1
+          fi
+          echo "PASS"
