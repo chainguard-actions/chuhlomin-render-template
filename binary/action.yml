@@ -1,29 +1,38 @@
 name: Render Template (binary)
 description: Renders file based on template and passed variables (uses pre-compiled binary, no Docker required)
+
 author: Konstantin Chukhlomin <mail@chuhlomin.com>
+
 branding:
   icon: file-text
   color: purple
+
 inputs:
   template:
     description: Path to template
     required: true
+
   vars:
     description: Variables to use in template
     required: false
+
   vars_path:
     description: Path to YAML file with variables
     required: false
+
   result_path:
     description: Desired path to result file (optional)
     required: false
+
   timezone:
     description: Timezone to use in `date` template function
     required: false
+
 outputs:
   result:
     description: Rendered file content
     value: ${{ steps.run.outputs.result }}
+
 runs:
   using: composite
   steps:
@@ -48,8 +57,8 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        ACTION_REPO: ${{ github.action_repository }}
-        ACTION_REF: ${{ github.action_ref }}
+        ACTION_REPO: 'chuhlomin/render-template'
+        ACTION_REF: 'v1.12'
       run: |
         OS=$(echo "$RUNNER_OS" | tr '[:upper:]' '[:lower:]')
         [ "$OS" = "macos" ] && OS="darwin"
@@ -71,7 +80,7 @@ runs:
           RESOLVED_TAG="$(gh release list \
             --repo "${REPO}" \
             --json tagName \
-            | jq -r --arg ref "${ACTION_REF}" 'first(.[] | select(.tagName | startswith($ref + "."))) | .tagName')"
+            --jq "first(.[] | select(.tagName | startswith(\"${ACTION_REF}.\"))) | .tagName")"
           [ -z "$RESOLVED_TAG" ] && echo "::error::No release found matching '${ACTION_REF}.*'" && exit 1
           echo "Resolved to ${RESOLVED_TAG}"
           if ! gh release download "${RESOLVED_TAG}" \
@@ -83,8 +92,9 @@ runs:
           fi
         fi
         [ "$OS" != "windows" ] && chmod +x "$DEST/$BINARY"
-        SAFE_BIN=$(printf '%s' "$DEST/$BINARY" | tr -d '\n\r')
-        echo "RENDER_TEMPLATE_BIN=$SAFE_BIN" >> "$GITHUB_ENV"
+        safe_bin=$(printf '%s' "$DEST/$BINARY" | tr -d '\n\r')
+        echo "RENDER_TEMPLATE_BIN=$safe_bin" >> "$GITHUB_ENV"
+
     - name: Run
       id: run
       shell: bash
@@ -94,4 +104,4 @@ runs:
         INPUT_VARS_PATH: ${{ inputs.vars_path }}
         INPUT_RESULT_PATH: ${{ inputs.result_path }}
         INPUT_TIMEZONE: ${{ inputs.timezone }}
-      run: "$RENDER_TEMPLATE_BIN"
+      run: '"$RENDER_TEMPLATE_BIN"'

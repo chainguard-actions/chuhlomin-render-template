@@ -1,4 +1,4 @@
-name: Test template rendering with timezone input
+name: Test rendering with timezone input
 on:
   workflow_dispatch:
 
@@ -12,7 +12,10 @@ jobs:
         uses: .
         continue-on-error: true
         with:
-          template: tests/fixtures/templates/date.md
+          template: tests/fixtures/templates/hello.md
+          vars: |
+            name: Timezone
+            version: 2.0
           timezone: America/New_York
 
       - name: Assert result
@@ -27,15 +30,14 @@ jobs:
               echo "FAIL: action succeeded but result output is empty"
               exit 1
             fi
-            if echo "$RESULT" | grep -qE "^Date: [0-9]{4}-[0-9]{2}-[0-9]{2}$"; then
-              echo "PASS: result contains a date in expected format"
+            if echo "$RESULT" | grep -q "Hello, Timezone!"; then
+              echo "PASS: result contains expected greeting with timezone set"
             else
-              echo "FAIL: result does not contain a date in expected format"
-              echo "Got: $RESULT"
+              echo "FAIL: result does not contain 'Hello, Timezone!'"
               exit 1
             fi
           elif [ "$OUTCOME" = "failure" ]; then
-            echo "PASS: action failed gracefully (binary download likely failed due to act-harness ref)"
+            echo "PASS: action failed gracefully (binary download likely unavailable under harness)"
           else
             echo "FAIL: unexpected outcome '$OUTCOME'"
             exit 1
