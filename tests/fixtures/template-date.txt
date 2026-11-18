@@ -1,2 +1,0 @@
-Date: {{ date "2006" now }}
-Greeting: {{ .greeting }}

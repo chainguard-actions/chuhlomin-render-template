@@ -1,4 +1,4 @@
-name: Test timezone input
+name: Test timezone input for date function
 on:
   workflow_dispatch:
 jobs:
@@ -7,33 +7,31 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Create template file with date function
+      - name: Create template using date function
         run: |
-          cat > /tmp/timezone-template.md << 'EOF'
-          Timezone: {{ env "TZ" }}
-          Hello: {{ .greeting }}
+          mkdir -p tz-test
+          cat > tz-test/timezone.template.txt <<'EOF'
+          utc: {{ .when | date "2006-01-02 15:04:05" }}
           EOF
+          sed -i 's/^ *//' tz-test/timezone.template.txt
+          cat tz-test/timezone.template.txt
 
       - id: action
         uses: .
         with:
-          template: /tmp/timezone-template.md
+          template: tz-test/timezone.template.txt
           vars: |
-            greeting=World
-          timezone: America/New_York
+            when: "2023-08-06T15:08:28Z"
+          timezone: Asia/Tokyo
 
-      - name: Assert result contains greeting
+      - name: Assert date converted to Asia/Tokyo (UTC+9)
         env:
           RESULT: ${{ steps.action.outputs.result }}
         run: |
           echo "result: $RESULT"
-          if [ -z "$RESULT" ]; then
-            echo "FAIL: result is empty"
-            exit 1
-          fi
-          if echo "$RESULT" | grep -q "World"; then
-            echo "PASS: result contains greeting"
+          if echo "$RESULT" | grep -q "utc: 2023-08-07 00:08:28"; then
+            echo "PASS: date rendered in Asia/Tokyo timezone"
           else
-            echo "FAIL: result does not contain expected greeting 'World'"
+            echo "FAIL: expected 'utc: 2023-08-07 00:08:28' in output"
             exit 1
           fi

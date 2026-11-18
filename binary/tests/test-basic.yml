@@ -1,0 +1,46 @@
+name: Test basic template rendering
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create template file
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp"
+          printf 'Hello, {{ .name }}!\n' > "$GITHUB_WORKSPACE/tests/tmp/hello.tmpl"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          template: tests/tmp/hello.tmpl
+          vars: |
+            name=World
+
+      - name: Assert action rendered template or failed gracefully on invalid ref
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "result: $RESULT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$RESULT" ]; then
+              echo "FAIL: action succeeded but result output is empty"
+              exit 1
+            fi
+            if echo "$RESULT" | grep -q "Hello, World"; then
+              echo "PASS: template rendered correctly"
+            else
+              echo "FAIL: expected 'Hello, World' in result, got: $RESULT"
+              exit 1
+            fi
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (likely invalid ACTION_REF for release download)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

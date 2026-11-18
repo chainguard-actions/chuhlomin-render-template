@@ -1,0 +1,3 @@
+deployment: my-app
+replicas: 3
+image: nginx:latest

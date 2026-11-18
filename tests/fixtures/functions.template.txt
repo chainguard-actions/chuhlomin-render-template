@@ -1,0 +1,2 @@
+encoded: {{ "hello" | base64 }}
+link: {{ "https://github.com" | mdlink "GitHub" }}

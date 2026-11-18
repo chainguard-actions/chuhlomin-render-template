@@ -1,0 +1,36 @@
+name: Test vars override over vars_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          template: tests/fixtures/override.template.txt
+          vars: |
+            env: production
+          vars_path: tests/fixtures/base-vars.yml
+
+      - name: Assert vars takes precedence over vars_path
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          # vars input sets env=production, which should override vars_path's env=staging
+          if echo "$RESULT" | grep -q "env: production"; then
+            echo "PASS: vars input correctly overrides vars_path"
+          else
+            echo "FAIL: expected 'env: production' (vars should override vars_path)"
+            exit 1
+          fi
+          # version comes from vars_path since vars doesn't set it
+          if echo "$RESULT" | grep -q "version: 1.0.0"; then
+            echo "PASS: vars_path value used for non-overridden key"
+          else
+            echo "FAIL: expected 'version: 1.0.0' from vars_path"
+            exit 1
+          fi

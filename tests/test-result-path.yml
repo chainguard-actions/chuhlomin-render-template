@@ -7,41 +7,52 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - id: render
+      - name: Create output directory
+        run: mkdir -p "$GITHUB_WORKSPACE/output"
+
+      - id: action
         uses: .
         with:
-          template: tests/fixtures/templates/output.tmpl
+          template: tests/fixtures/config.template.txt
           vars: |
-            project: MyApp
-          result_path: rendered-output.txt
+            host: localhost
+            port: 8080
+          result_path: output/config.txt
 
-      - name: Assert result output contains expected content
+      - name: Assert result file was written
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/output/config.txt" ]; then
+            echo "FAIL: result file not found at output/config.txt"
+            exit 1
+          fi
+          echo "PASS: result file exists"
+          cat "$GITHUB_WORKSPACE/output/config.txt"
+
+      - name: Assert result file content
+        run: |
+          CONTENT=$(cat "$GITHUB_WORKSPACE/output/config.txt")
+          echo "content: $CONTENT"
+          if echo "$CONTENT" | grep -q "server: localhost"; then
+            echo "PASS: host rendered correctly in file"
+          else
+            echo "FAIL: expected 'server: localhost' in result file"
+            exit 1
+          fi
+          if echo "$CONTENT" | grep -q "port: 8080"; then
+            echo "PASS: port rendered correctly in file"
+          else
+            echo "FAIL: expected 'port: 8080' in result file"
+            exit 1
+          fi
+
+      - name: Assert output variable also set
         env:
-          ACTUAL: ${{ steps.render.outputs.result }}
+          RESULT: ${{ steps.action.outputs.result }}
         run: |
-          echo "actual output: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: output is empty"
-            exit 1
-          fi
-          if echo "$ACTUAL" | grep -qF "MyApp"; then
-            echo "PASS: output contains 'MyApp'"
+          echo "result output: $RESULT"
+          if echo "$RESULT" | grep -q "server: localhost"; then
+            echo "PASS: result output also contains rendered content"
           else
-            echo "FAIL: expected output to contain 'MyApp' but got: $ACTUAL"
-            exit 1
-          fi
-
-      - name: Assert result file was created
-        run: |
-          if [ ! -f "$GITHUB_WORKSPACE/rendered-output.txt" ]; then
-            echo "FAIL: result file was not created at $GITHUB_WORKSPACE/rendered-output.txt"
-            exit 1
-          fi
-          CONTENT=$(cat "$GITHUB_WORKSPACE/rendered-output.txt")
-          echo "file content: $CONTENT"
-          if echo "$CONTENT" | grep -qF "MyApp"; then
-            echo "PASS: result file contains 'MyApp'"
-          else
-            echo "FAIL: result file does not contain 'MyApp'"
+            echo "FAIL: expected result output to contain 'server: localhost'"
             exit 1
           fi

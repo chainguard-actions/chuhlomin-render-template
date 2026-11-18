@@ -7,25 +7,28 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - id: render
+      - id: action
         uses: .
         with:
-          template: tests/fixtures/templates/basic.tmpl
+          template: tests/fixtures/hello.template.txt
           vars: |
             name: World
+            age: 42
 
-      - name: Assert rendered output contains expected content
+      - name: Assert output contains rendered content
         env:
-          ACTUAL: ${{ steps.render.outputs.result }}
+          RESULT: ${{ steps.action.outputs.result }}
         run: |
-          echo "actual: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: output is empty"
+          echo "result: $RESULT"
+          if echo "$RESULT" | grep -q "Hello, World!"; then
+            echo "PASS: name rendered correctly"
+          else
+            echo "FAIL: expected 'Hello, World!' in output"
             exit 1
           fi
-          if echo "$ACTUAL" | grep -qF "Hello, World!"; then
-            echo "PASS: output contains 'Hello, World!'"
+          if echo "$RESULT" | grep -q "42 years old"; then
+            echo "PASS: age rendered correctly"
           else
-            echo "FAIL: expected output to contain 'Hello, World!' but got: $ACTUAL"
+            echo "FAIL: expected '42 years old' in output"
             exit 1
           fi

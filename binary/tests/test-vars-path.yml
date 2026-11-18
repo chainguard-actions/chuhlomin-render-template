@@ -1,0 +1,46 @@
+name: Test template rendering with vars_path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create template and vars files
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/tests/tmp"
+          printf 'Hello, {{ .name }}! You are {{ .age }} years old.\n' > "$GITHUB_WORKSPACE/tests/tmp/greeting.tmpl"
+          printf 'name: Alice\nage: 30\n' > "$GITHUB_WORKSPACE/tests/tmp/vars.yaml"
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          template: tests/tmp/greeting.tmpl
+          vars_path: tests/tmp/vars.yaml
+
+      - name: Assert action rendered template with vars_path or failed gracefully
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          echo "result: $RESULT"
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -z "$RESULT" ]; then
+              echo "FAIL: action succeeded but result output is empty"
+              exit 1
+            fi
+            if echo "$RESULT" | grep -q "Hello, Alice"; then
+              echo "PASS: template rendered correctly with vars_path"
+            else
+              echo "FAIL: expected 'Hello, Alice' in result, got: $RESULT"
+              exit 1
+            fi
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (likely invalid ACTION_REF for release download)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi

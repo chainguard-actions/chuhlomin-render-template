@@ -1,0 +1,40 @@
+name: Test template functions (base64, mdlink)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          template: tests/fixtures/functions.template.txt
+          vars: |
+            dummy: value
+
+      - name: Assert base64 encoding
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          # "hello" base64 encoded is "aGVsbG8="
+          if echo "$RESULT" | grep -q "encoded: aGVsbG8="; then
+            echo "PASS: base64 function works correctly"
+          else
+            echo "FAIL: expected 'encoded: aGVsbG8=' in output"
+            exit 1
+          fi
+
+      - name: Assert mdlink function
+        env:
+          RESULT: ${{ steps.action.outputs.result }}
+        run: |
+          echo "result: $RESULT"
+          if echo "$RESULT" | grep -q "\[GitHub\](https://github.com)"; then
+            echo "PASS: mdlink function works correctly"
+          else
+            echo "FAIL: expected '[GitHub](https://github.com)' in output"
+            exit 1
+          fi

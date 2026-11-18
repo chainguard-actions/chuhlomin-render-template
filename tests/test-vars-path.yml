@@ -7,24 +7,32 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - id: render
+      - id: action
         uses: .
         with:
-          template: tests/fixtures/templates/greeting.tmpl
-          vars_path: tests/fixtures/vars/basic.yaml
+          template: tests/fixtures/deploy.template.yml
+          vars_path: tests/fixtures/vars.yml
 
-      - name: Assert rendered output contains expected content from YAML vars
+      - name: Assert output contains rendered deployment
         env:
-          ACTUAL: ${{ steps.render.outputs.result }}
+          RESULT: ${{ steps.action.outputs.result }}
         run: |
-          echo "actual: $ACTUAL"
-          if [ -z "$ACTUAL" ]; then
-            echo "FAIL: output is empty"
+          echo "result: $RESULT"
+          if echo "$RESULT" | grep -q "name: my-app"; then
+            echo "PASS: deployment name rendered correctly"
+          else
+            echo "FAIL: expected 'name: my-app' in output"
             exit 1
           fi
-          if echo "$ACTUAL" | grep -qF "Hello, World!"; then
-            echo "PASS: output contains 'Hello, World!'"
+          if echo "$RESULT" | grep -q "replicas: 3"; then
+            echo "PASS: replicas rendered correctly"
           else
-            echo "FAIL: expected output to contain 'Hello, World!' but got: $ACTUAL"
+            echo "FAIL: expected 'replicas: 3' in output"
+            exit 1
+          fi
+          if echo "$RESULT" | grep -q "image: nginx:latest"; then
+            echo "PASS: image rendered correctly"
+          else
+            echo "FAIL: expected 'image: nginx:latest' in output"
             exit 1
           fi
